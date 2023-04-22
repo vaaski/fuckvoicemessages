@@ -50,6 +50,9 @@
     "unbuild": "^1.2.1"
   },
   "dependencies": {
-    "dotenv": "^16.0.3"
+    "dotenv": "^16.0.3",
+    "execa": "^7.1.1",
+    "got": "^12.6.0",
+    "grammy": "^1.15.3"
   }
 }
