@@ -1,0 +1,8 @@
+{
+  "apps": [
+    {
+      "name": "fuckvoicemessages",
+      "script": "./dist/index.mjs"
+    }
+  ]
+}
