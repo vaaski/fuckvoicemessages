@@ -36,6 +36,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
+    "@types/debug": "^4.1.7",
     "@types/node": "^18.15.13",
     "@typescript-eslint/eslint-plugin": "^5.59.0",
     "@typescript-eslint/parser": "^5.59.0",
@@ -50,6 +51,7 @@
     "unbuild": "^1.2.1"
   },
   "dependencies": {
+    "debug": "^4.3.4",
     "dotenv": "^16.0.3",
     "execa": "^7.1.1",
     "got": "^12.6.0",

@@ -1,3 +1,4 @@
+import debug from "debug"
 import { execa } from "execa"
 import got from "got"
 import { Bot, GrammyError, HttpError } from "grammy"
@@ -8,6 +9,16 @@ import type { Readable } from "node:stream"
 import { Stream } from "node:stream"
 import { fileURLToPath } from "node:url"
 import { promisify } from "node:util"
+
+const log = debug("fm:index")
+
+const logStream = (namespace: string) =>
+  new Stream.Writable({
+    write(chunk, encoding, callback) {
+      log.extend(namespace)(chunk.toString())
+      callback()
+    },
+  })
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const pipeline = promisify(Stream.pipeline)
@@ -23,22 +34,29 @@ const getFileURL = (file_path: string) => {
   return `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${file_path}`
 }
 const toWavStream = (inputPath: string) => {
-  const ffmpeg = execa(
-    "ffmpeg",
-    ["-i", inputPath, "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", "-f", "wav", "-"],
-    { stderr: "inherit" }
-  )
+  const ffmpeg = execa("ffmpeg", [
+    "-i",
+    inputPath,
+    "-ar",
+    "16000",
+    "-ac",
+    "1",
+    "-c:a",
+    "pcm_s16le",
+    "-f",
+    "wav",
+    "-",
+  ])
+  ffmpeg.stderr?.pipe(logStream("ffmpeg"))
 
   if (!ffmpeg.stdout) throw new Error("no ffmpeg stdout")
   return ffmpeg.stdout
 }
 
 const transcribe = async (inputStream: Readable, replier: (input: string) => void) => {
-  const transcriber = execa(
-    WHISPER_BIN,
-    ["-m", WHISPER_MODEL, "-l", "auto", "-nt", "-"],
-    { stderr: "inherit" }
-  )
+  const transcriber = execa(WHISPER_BIN, ["-m", WHISPER_MODEL, "-l", "auto", "-nt", "-"])
+  transcriber.stderr?.pipe(logStream("transcriber"))
+
   if (!transcriber.stdin) throw new Error("no transcriber stdin")
   if (!transcriber.stdout) throw new Error("no transcriber stdout")
 
@@ -46,7 +64,7 @@ const transcribe = async (inputStream: Readable, replier: (input: string) => voi
     const dataString: string | undefined = data.toString().trim()
     if (!dataString) return
 
-    console.log(dataString)
+    log(dataString)
     replier(dataString)
   })
 

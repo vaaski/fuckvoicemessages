@@ -9,6 +9,6 @@
     "start": "node -e \"console.clear()\""
   },
   "env": {
-    "DEBUG": "grammy*"
+    "DEBUG": "grammy*,fm:*"
   }
 }
