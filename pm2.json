@@ -2,7 +2,11 @@
   "apps": [
     {
       "name": "fuckvoicemessages",
-      "script": "./dist/index.mjs"
+      "script": "node -r dotenv/config ./dist/index.mjs"
     }
-  ]
+  ],
+  "env": {
+    "DEBUG": "fm:*",
+    "DEBUG_COLORS": "true"
+  }
 }

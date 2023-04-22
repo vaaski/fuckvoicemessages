@@ -158,7 +158,7 @@ bot.catch(rawError => {
   }
 })
 
-await mkdir(TEMP_FOLDER, { recursive: true })
+mkdir(TEMP_FOLDER, { recursive: true })
 
 console.log("running bot")
-await bot.start()
+bot.start()
