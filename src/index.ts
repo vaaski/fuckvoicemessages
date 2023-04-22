@@ -59,7 +59,7 @@ const toWavStream = (inputPath: string) => {
 
 const transcribe = async (inputStream: Readable, replier: (input: string) => void) => {
   const transcriber = execa(WHISPER_BIN, ["-m", WHISPER_MODEL, "-l", "auto", "-nt", "-"])
-  transcriber.stderr?.pipe(logStream("transcriber"))
+  // transcriber.stderr?.pipe(logStream("transcriber"))
 
   if (!transcriber.stdin) throw new Error("no transcriber stdin")
   if (!transcriber.stdout) throw new Error("no transcriber stdout")
@@ -68,7 +68,7 @@ const transcribe = async (inputStream: Readable, replier: (input: string) => voi
     const dataString: string | undefined = data.toString().trim()
     if (!dataString) return
 
-    log(dataString)
+    log.extend("transcriber")(dataString)
     replier(dataString)
   })
 
