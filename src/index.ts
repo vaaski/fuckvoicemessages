@@ -21,6 +21,7 @@ const logStream = (namespace: string) =>
   })
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+const TEMP_FOLDER = join(__dirname, "../temp.local")
 const pipeline = promisify(Stream.pipeline)
 
 const { TELEGRAM_BOT_TOKEN, WHISPER_BIN, WHISPER_MODEL } = process.env
@@ -86,17 +87,46 @@ bot.on(["message:audio", "message:voice"], async context => {
 
   const extension = extname(path).replace(".", "")
   const url = getFileURL(path)
-  const rawAudioPath = join(
-    __dirname,
-    "../temp.local",
-    `${file.file_unique_id}.${extension}`
-  )
+  const rawAudioPath = join(TEMP_FOLDER, `${file.file_unique_id}.${extension}`)
 
   const replier = (input: string) => {
     return context.reply(input, { reply_to_message_id: context.message.message_id })
   }
 
   const transcribeResponse = await context.reply("processing...")
+  const request = got.stream(url)
+  const writeStream = createWriteStream(rawAudioPath)
+
+  await pipeline(request, writeStream)
+  const wavStream = toWavStream(rawAudioPath)
+
+  await transcribe(wavStream, replier)
+  await unlink(rawAudioPath)
+
+  await context.api.deleteMessage(context.chat.id, transcribeResponse.message_id)
+})
+
+bot.hears("@fuckvoicemessages_bot", async context => {
+  if (!context.message) return
+
+  const repliedTo = context.message?.reply_to_message
+  if (!repliedTo) return
+
+  const repliedToVoice = repliedTo.voice
+  if (!repliedToVoice) return
+
+  const file = await context.api.getFile(repliedToVoice.file_id)
+  const path = file.file_path
+  if (!path) return context.reply("no path")
+
+  const extension = extname(path).replace(".", "")
+  const url = getFileURL(path)
+  const rawAudioPath = join(TEMP_FOLDER, `${file.file_unique_id}.${extension}`)
+  const replier = (input: string) => {
+    return context.reply(input, { reply_to_message_id: repliedTo.message_id })
+  }
+
+  const transcribeResponse = await replier("processing...")
   const request = got.stream(url)
   const writeStream = createWriteStream(rawAudioPath)
 
@@ -124,7 +154,7 @@ bot.catch(rawError => {
   }
 })
 
-await mkdir(join(__dirname, "../temp.local"), { recursive: true })
+await mkdir(TEMP_FOLDER, { recursive: true })
 
 console.log("running bot")
 await bot.start()
