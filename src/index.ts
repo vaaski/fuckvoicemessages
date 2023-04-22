@@ -90,10 +90,12 @@ bot.on(["message:audio", "message:voice"], async context => {
   const rawAudioPath = join(TEMP_FOLDER, `${file.file_unique_id}.${extension}`)
 
   const replier = (input: string) => {
-    return context.reply(input, { reply_to_message_id: context.message.message_id })
+    return context.reply(input)
   }
 
-  const transcribeResponse = await context.reply("processing...")
+  const transcribeResponse = await context.reply("processing...", {
+    reply_to_message_id: context.message.message_id,
+  })
   const request = got.stream(url)
   const writeStream = createWriteStream(rawAudioPath)
 
@@ -112,10 +114,10 @@ bot.hears("@fuckvoicemessages_bot", async context => {
   const repliedTo = context.message?.reply_to_message
   if (!repliedTo) return
 
-  const repliedToVoice = repliedTo.voice
-  if (!repliedToVoice) return
+  const repliedToAudio = repliedTo.voice ?? repliedTo.audio
+  if (!repliedToAudio) return
 
-  const file = await context.api.getFile(repliedToVoice.file_id)
+  const file = await context.api.getFile(repliedToAudio.file_id)
   const path = file.file_path
   if (!path) return context.reply("no path")
 
@@ -123,10 +125,12 @@ bot.hears("@fuckvoicemessages_bot", async context => {
   const url = getFileURL(path)
   const rawAudioPath = join(TEMP_FOLDER, `${file.file_unique_id}.${extension}`)
   const replier = (input: string) => {
-    return context.reply(input, { reply_to_message_id: repliedTo.message_id })
+    return context.reply(input)
   }
 
-  const transcribeResponse = await replier("processing...")
+  const transcribeResponse = await context.reply("processing...", {
+    reply_to_message_id: repliedTo.message_id,
+  })
   const request = got.stream(url)
   const writeStream = createWriteStream(rawAudioPath)
 
