@@ -92,6 +92,10 @@ bot.on(["message:audio", "message:voice"], async context => {
     `${file.file_unique_id}.${extension}`
   )
 
+  const replier = (input: string) => {
+    return context.reply(input, { reply_to_message_id: context.message.message_id })
+  }
+
   const transcribeResponse = await context.reply("processing...")
   const request = got.stream(url)
   const writeStream = createWriteStream(rawAudioPath)
@@ -99,7 +103,7 @@ bot.on(["message:audio", "message:voice"], async context => {
   await pipeline(request, writeStream)
   const wavStream = toWavStream(rawAudioPath)
 
-  await transcribe(wavStream, context.reply.bind(context))
+  await transcribe(wavStream, replier)
   await unlink(rawAudioPath)
 
   await context.api.deleteMessage(context.chat.id, transcribeResponse.message_id)
