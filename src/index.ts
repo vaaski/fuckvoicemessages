@@ -1,9 +1,10 @@
 import { execa } from "execa"
 import got from "got"
 import { Bot, GrammyError, HttpError } from "grammy"
-import { createReadStream, createWriteStream } from "node:fs"
+import { createWriteStream } from "node:fs"
 import { mkdir, unlink } from "node:fs/promises"
-import { dirname, extname, join, parse } from "node:path"
+import { dirname, extname, join } from "node:path"
+import type { Readable } from "node:stream"
 import { Stream } from "node:stream"
 import { fileURLToPath } from "node:url"
 import { promisify } from "node:util"
@@ -21,28 +22,23 @@ const bot = new Bot(TELEGRAM_BOT_TOKEN)
 const getFileURL = (file_path: string) => {
   return `https://api.telegram.org/file/bot${TELEGRAM_BOT_TOKEN}/${file_path}`
 }
-const convertToWAV = async (inputPath: string) => {
-  const parsed = parse(inputPath)
-  const outputPath = join(parsed.dir, `${parsed.name}.wav`)
+const toWavStream = (inputPath: string) => {
+  const ffmpeg = execa(
+    "ffmpeg",
+    ["-i", inputPath, "-ar", "16000", "-ac", "1", "-c:a", "pcm_s16le", "-f", "wav", "-"],
+    { stderr: "inherit" }
+  )
 
-  await execa("ffmpeg", [
-    "-i",
-    inputPath,
-    "-ar",
-    "16000",
-    "-ac",
-    "1",
-    "-c:a",
-    "pcm_s16le",
-    "-y",
-    outputPath,
-  ])
-
-  return outputPath
+  if (!ffmpeg.stdout) throw new Error("no ffmpeg stdout")
+  return ffmpeg.stdout
 }
 
-const transcribe = async (inputPath: string, replier: (input: string) => void) => {
-  const transcriber = execa(WHISPER_BIN, ["-m", WHISPER_MODEL, "-l", "auto", "-nt", "-"])
+const transcribe = async (inputStream: Readable, replier: (input: string) => void) => {
+  const transcriber = execa(
+    WHISPER_BIN,
+    ["-m", WHISPER_MODEL, "-l", "auto", "-nt", "-"],
+    { stderr: "inherit" }
+  )
   if (!transcriber.stdin) throw new Error("no transcriber stdin")
   if (!transcriber.stdout) throw new Error("no transcriber stdout")
 
@@ -54,8 +50,7 @@ const transcribe = async (inputPath: string, replier: (input: string) => void) =
     replier(dataString)
   })
 
-  const fileStream = createReadStream(inputPath)
-  await pipeline(fileStream, transcriber.stdin)
+  await pipeline(inputStream, transcriber.stdin)
   await transcriber
 }
 
@@ -70,7 +65,7 @@ bot.on(["message:audio", "message:voice"], async context => {
 
   const extension = extname(path).replace(".", "")
   const url = getFileURL(path)
-  const destination = join(
+  const rawAudioPath = join(
     __dirname,
     "../temp.local",
     `${file.file_unique_id}.${extension}`
@@ -78,17 +73,15 @@ bot.on(["message:audio", "message:voice"], async context => {
 
   const transcribeResponse = await context.reply("processing...")
   const request = got.stream(url)
-  const writeStream = createWriteStream(destination)
+  const writeStream = createWriteStream(rawAudioPath)
 
   await pipeline(request, writeStream)
-  const wavPath = await convertToWAV(destination)
+  const wavStream = toWavStream(rawAudioPath)
 
-  await unlink(destination)
+  await transcribe(wavStream, context.reply.bind(context))
+  await unlink(rawAudioPath)
 
-  await transcribe(wavPath, context.reply.bind(context))
   await context.api.deleteMessage(context.chat.id, transcribeResponse.message_id)
-
-  await unlink(wavPath)
 })
 
 // eslint-disable-next-line unicorn/prefer-top-level-await
