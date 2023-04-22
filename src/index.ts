@@ -1,2 +1,3 @@
 console.log("Hello, world!")
-export{}
+console.log(process.env.TELEGRAM_BOT_TOKEN)
+export {}

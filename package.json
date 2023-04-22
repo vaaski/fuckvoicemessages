@@ -48,5 +48,8 @@
     "tsx": "^3.12.6",
     "typescript": "^5.0.4",
     "unbuild": "^1.2.1"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3"
   }
 }
