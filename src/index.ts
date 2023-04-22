@@ -35,6 +35,9 @@ const getFileURL = (file_path: string) => {
 }
 const toWavStream = (inputPath: string) => {
   const ffmpeg = execa("ffmpeg", [
+    "-loglevel",
+    "16",
+    "-y",
     "-i",
     inputPath,
     "-ar",
@@ -72,7 +75,7 @@ const transcribe = async (inputStream: Readable, replier: (input: string) => voi
   await transcriber
 }
 
-bot.command("start", context => context.reply("yo"))
+bot.command("start", context => context.reply("send a voice message or something idk"))
 bot.on(["message:audio", "message:voice"], async context => {
   const audio = context.message.audio ?? context.message.voice
   if (!audio) return context.reply("no audio")
