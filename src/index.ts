@@ -24,10 +24,11 @@ const __dirname = dirname(fileURLToPath(import.meta.url))
 const TEMP_FOLDER = join(__dirname, "../temp.local")
 const pipeline = promisify(Stream.pipeline)
 
-const { TELEGRAM_BOT_TOKEN, WHISPER_BIN, WHISPER_MODEL } = process.env
+const { TELEGRAM_BOT_TOKEN, WHISPER_BIN, WHISPER_MODEL, WHISPER_THREADS } = process.env
 if (!TELEGRAM_BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN is not defined")
 if (!WHISPER_BIN) throw new Error("WHISPER_BIN is not defined")
 if (!WHISPER_MODEL) throw new Error("WHISPER_MODEL is not defined")
+if (!WHISPER_THREADS) throw new Error("WHISPER_THREADS is not defined")
 
 const bot = new Bot(TELEGRAM_BOT_TOKEN)
 
@@ -58,7 +59,16 @@ const toWavStream = (inputPath: string) => {
 }
 
 const transcribe = async (inputStream: Readable, replier: (input: string) => void) => {
-  const transcriber = execa(WHISPER_BIN, ["-m", WHISPER_MODEL, "-l", "auto", "-nt", "-"])
+  const transcriber = execa(WHISPER_BIN, [
+    "-t",
+    WHISPER_THREADS,
+    "-m",
+    WHISPER_MODEL,
+    "-l",
+    "auto",
+    "-nt",
+    "-",
+  ])
   // transcriber.stderr?.pipe(logStream("transcriber"))
 
   if (!transcriber.stdin) throw new Error("no transcriber stdin")
