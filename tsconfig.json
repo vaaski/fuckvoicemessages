@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "composite": false,
+    "module": "ESNext",
+    "target": "ESNext",
+    "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "types": [
+      "@types/node"
+    ],
+    "strict": true,
+    "lib": [
+      "ES6"
+    ]
+  },
+  "include": [
+    "src/**/*.ts"
+  ]
+}
