@@ -106,7 +106,7 @@ bot.command("deletekey", async ctx => {
     await bot.api.deleteMessage(ctx.chat.id, pinned_message.message_id)
   } while (pinned_message)
 
-  await ctx.reply("Deleted saved key.")
+  await ctx.reply("Deleted saved key.", { reply_to_message_id: ctx.msg.message_id })
 })
 
 bot.on("message", async (ctx, next) => {
@@ -116,7 +116,7 @@ bot.on("message", async (ctx, next) => {
 
   if (ctx.msg.text) console.log(`  ${ctx.msg.text}`)
   else if (ctx.msg.voice) console.log(`  [VOICE] ${ctx.msg.voice.duration}s`)
-  else return console.log(`  something fucked`)
+  else return
 
   next()
 })
@@ -139,7 +139,7 @@ bot.on("message", async (ctx, next) => {
 
 bot.on("message:text", async ctx => {
   try {
-    const { text } = ctx.message
+    const { text } = ctx.msg
 
     const waitingMessage = ctx.reply("Generating...")
 
@@ -154,7 +154,9 @@ bot.on("message:text", async ctx => {
     if (!audio.body) throw new Error("No audio body")
 
     bot.api.deleteMessage(ctx.chat.id, (await waitingMessage).message_id)
-    await ctx.replyWithVoice(new InputFile(audio.body))
+    await ctx.replyWithVoice(new InputFile(audio.body), {
+      reply_to_message_id: ctx.msg.message_id,
+    })
   } catch (error) {
     handleError(ctx, error)
   }
@@ -179,7 +181,7 @@ bot.on("message:voice", async ctx => {
     })
 
     bot.api.deleteMessage(ctx.chat.id, (await waitingMessage).message_id)
-    await ctx.reply(transcription.text)
+    await ctx.reply(transcription.text, { reply_to_message_id: ctx.msg.message_id })
   } catch (error) {
     handleError(ctx, error)
   }
