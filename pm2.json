@@ -2,7 +2,7 @@
   "apps": [
     {
       "name": "fuckvoicemessages",
-      "script": "npx tsx -r dotenv/config ./src/index.ts"
+      "script": "bun ./src/index.ts"
     }
   ]
 }
