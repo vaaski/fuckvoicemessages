@@ -1,24 +1,113 @@
 import { FileFlavor, hydrateFiles } from "@grammyjs/files"
 import { Bot, Context, InputFile } from "grammy"
+import { Message } from "grammy/types"
 import OpenAI from "openai"
 
-const { TELEGRAM_BOT_TOKEN, OPENAI_API_KEY } = process.env
+const { TELEGRAM_BOT_TOKEN } = process.env
 if (!TELEGRAM_BOT_TOKEN) throw new Error("TELEGRAM_BOT_TOKEN is not defined")
-if (!OPENAI_API_KEY) throw new Error("OPENAI_API_KEY is not defined")
 
 type MyContext = FileFlavor<Context>
 const bot = new Bot<MyContext>(TELEGRAM_BOT_TOKEN)
 bot.api.config.use(hydrateFiles(bot.token))
 
-const openai = new OpenAI({ apiKey: OPENAI_API_KEY })
+bot.api.setMyCommands([
+  {
+    command: "/help",
+    description: "Send the help text.",
+  },
+  {
+    command: "/getkey",
+    description: "Get your saved OpenAI API key.",
+  },
+  {
+    command: "/deletekey",
+    description: "Delete your saved OpenAI API key.",
+  },
+  {
+    command: "/start",
+    description: "Send the start text again.",
+  },
+])
 
-bot.command("start", ctx => {
+const getKeyFromPinnedMessage = async (chatID: number) => {
+  const chat = await bot.api.getChat(chatID)
+
+  const { pinned_message } = chat
+  if (!pinned_message) throw new Error("No pinned message found.")
+  if (!pinned_message.text) throw new Error("Pinned message is doesn't contain text.")
+
+  const decoded = Buffer.from(pinned_message.text, "base64").toString("utf-8")
+  const [, apiKey] = decoded.split("=")
+
+  if (!apiKey) throw new Error("No key found in pinned message.")
+
+  return apiKey
+}
+
+const getOpenaiInstance = async (chatID: number): Promise<OpenAI> => {
+  const apiKey = await getKeyFromPinnedMessage(chatID)
+  return new OpenAI({ apiKey })
+}
+
+const handleError = async (ctx: Context, error: unknown) => {
+  console.error(error)
+
+  if (error instanceof Error) {
+    await ctx.reply(
+      [
+        `An error occurred; <code>${error.message}</code>`,
+        "Make sure you've set an <code>OPENAI_API_KEY</code>.",
+        "",
+        "To set it just send it to me and I'll store it encoded in a pinned message.",
+      ].join("\n"),
+      { parse_mode: "HTML" }
+    )
+  } else {
+    await ctx.reply("An unknown error occurred.")
+  }
+}
+
+bot.on("message", (ctx, next) => {
+  if (ctx.chat.type !== "private" || ctx.from.is_bot) return
+  else next()
+})
+
+bot.command(["start", "help"], ctx => {
   ctx.reply(
-    "Send text and I'll read it out loud. Send a voice message and I'll transcribe it."
+    [
+      "Send text and I'll read it out loud.",
+      "Send a voice message and I'll transcribe it.",
+      "",
+      "Make sure to set your <code>OPENAI_API_KEY</code>.",
+      "To set it just send it to me and I'll store it encoded in a pinned message.",
+    ].join("\n"),
+    { parse_mode: "HTML" }
   )
 })
 
-bot.api.setMyCommands([{ command: "/start", description: "Send the start text again" }])
+bot.command("getkey", async ctx => {
+  try {
+    const apiKey = await getKeyFromPinnedMessage(ctx.chat.id)
+    await ctx.reply(`Your key is: ${apiKey}`)
+  } catch (error) {
+    await ctx.reply("No key found.")
+  }
+})
+
+bot.command("deletekey", async ctx => {
+  let pinned_message: Message | undefined
+
+  do {
+    const chat = await bot.api.getChat(ctx.chat.id)
+    pinned_message = chat.pinned_message
+    if (!pinned_message) break
+
+    await bot.api.unpinChatMessage(ctx.chat.id, pinned_message.message_id)
+    await bot.api.deleteMessage(ctx.chat.id, pinned_message.message_id)
+  } while (pinned_message)
+
+  await ctx.reply("Deleted saved key.")
+})
 
 bot.on("message", async (ctx, next) => {
   const { username, first_name, last_name, id } = ctx.msg.from
@@ -27,47 +116,73 @@ bot.on("message", async (ctx, next) => {
 
   if (ctx.msg.text) console.log(`  ${ctx.msg.text}`)
   else if (ctx.msg.voice) console.log(`  [VOICE] ${ctx.msg.voice.duration}s`)
-  else console.log(`  something fucked`)
+  else return console.log(`  something fucked`)
 
   next()
 })
 
+// openai api key handler
+const openaiApiKeyRegex = /^sk-[a-z0-9]{48}$/i
+bot.on("message", async (ctx, next) => {
+  const text = ctx.msg.text
+  if (!text) return next()
+
+  if (openaiApiKeyRegex.test(text)) {
+    await ctx.deleteMessage()
+
+    const encoded = Buffer.from(`OPENAI_API_KEY=${text}`).toString("base64")
+    const keyStore = await ctx.reply(encoded)
+
+    await bot.api.pinChatMessage(ctx.chat.id, keyStore.message_id)
+  } else next()
+})
+
 bot.on("message:text", async ctx => {
-  const { text } = ctx.message
+  try {
+    const { text } = ctx.message
 
-  const waitingMessage = ctx.reply("Generating...")
+    const waitingMessage = ctx.reply("Generating...")
 
-  const audio = await openai.audio.speech.create({
-    input: text,
-    model: "tts-1",
-    voice: "onyx",
-    response_format: "opus",
-  })
+    const openai = await getOpenaiInstance(ctx.chat.id)
+    const audio = await openai.audio.speech.create({
+      input: text,
+      model: "tts-1",
+      voice: "onyx",
+      response_format: "opus",
+    })
 
-  if (!audio.body) throw new Error("No audio body")
+    if (!audio.body) throw new Error("No audio body")
 
-  bot.api.deleteMessage(ctx.chat.id, (await waitingMessage).message_id)
-  await ctx.replyWithVoice(new InputFile(audio.body))
+    bot.api.deleteMessage(ctx.chat.id, (await waitingMessage).message_id)
+    await ctx.replyWithVoice(new InputFile(audio.body))
+  } catch (error) {
+    handleError(ctx, error)
+  }
 })
 
 bot.on("message:voice", async ctx => {
-  const voice = ctx.msg.voice
+  try {
+    const voice = ctx.msg.voice
 
-  const duration = voice.duration
-  const waitingMessage = ctx.reply(`Transcribing your ${duration}s voice message.`)
+    const duration = voice.duration
+    const waitingMessage = ctx.reply(`Transcribing your ${duration}s voice message.`)
 
-  const file = await ctx.getFile()
+    const file = await ctx.getFile()
 
-  const response = await fetch(file.getUrl())
-  if (!response.body) throw new Error("No response body")
+    const response = await fetch(file.getUrl())
+    if (!response.body) throw new Error("No response body")
 
-  const transcription = await openai.audio.transcriptions.create({
-    file: response,
-    model: "whisper-1",
-  })
+    const openai = await getOpenaiInstance(ctx.chat.id)
+    const transcription = await openai.audio.transcriptions.create({
+      file: response,
+      model: "whisper-1",
+    })
 
-  bot.api.deleteMessage(ctx.chat.id, (await waitingMessage).message_id)
-  await ctx.reply(transcription.text)
+    bot.api.deleteMessage(ctx.chat.id, (await waitingMessage).message_id)
+    await ctx.reply(transcription.text)
+  } catch (error) {
+    handleError(ctx, error)
+  }
 })
 
 console.log("Starting bot...")
