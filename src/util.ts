@@ -1,26 +1,6 @@
-import OpenAI from "openai"
-import type { MyContext } from "./bot"
-import { bot } from "./bot"
-
-export const getKeyFromPinnedMessage = async (chatID: number) => {
-  const chat = await bot.api.getChat(chatID)
-
-  const { pinned_message } = chat
-  if (!pinned_message) throw new Error("No pinned message found.")
-  if (!pinned_message.text) throw new Error("Pinned message is doesn't contain text.")
-
-  const decoded = Buffer.from(pinned_message.text, "base64").toString("utf8")
-  const [, apiKey] = decoded.split("=")
-
-  if (!apiKey) throw new Error("No key found in pinned message.")
-
-  return apiKey
-}
-
-export const getOpenaiInstance = async (chatID: number): Promise<OpenAI> => {
-  const apiKey = await getKeyFromPinnedMessage(chatID)
-  return new OpenAI({ apiKey })
-}
+import type { BotType, MyContext } from "./bot"
+import type { Message } from "grammy/types"
+import type { CommandContext } from "grammy"
 
 export const handleError = async (ctx: MyContext, error: unknown) => {
   console.error(error)
@@ -38,4 +18,26 @@ export const handleError = async (ctx: MyContext, error: unknown) => {
   } else {
     await ctx.reply("An unknown error occurred.")
   }
+}
+
+export const chunkArray = <T>(array: T[], chunkSize: number): T[][] => {
+  const chunks = []
+
+  for (let index = 0; index < array.length; index += chunkSize) {
+    chunks.push(array.slice(index, index + chunkSize))
+  }
+
+  return chunks
+}
+
+export const deleteConfig = async (botInstance: BotType, ctx: CommandContext<MyContext>) => {
+  let pinned_message: Message | undefined
+  do {
+    const chat = await botInstance.api.getChat(ctx.chat.id)
+    pinned_message = chat.pinned_message
+    if (!pinned_message) break
+
+    await botInstance.api.unpinChatMessage(ctx.chat.id, pinned_message.message_id)
+    await botInstance.api.deleteMessage(ctx.chat.id, pinned_message.message_id)
+  } while (pinned_message)
 }

@@ -1,8 +1,10 @@
 import { InputFile } from "grammy"
 
 import { bot } from "./bot"
-import { getOpenaiInstance, handleError } from "./util"
+import { handleError } from "./util"
 import { commandHandler } from "./commands"
+import { getConfig, setConfig } from "./config"
+import OpenAI from "openai"
 
 // reject non-private messages and bots
 bot.on("message", (ctx, next) => {
@@ -34,10 +36,9 @@ bot.on("message", async (ctx, next) => {
   if (openaiApiKeyRegex.test(text)) {
     await ctx.deleteMessage()
 
-    const encoded = Buffer.from(`OPENAI_API_KEY=${text}`).toString("base64")
-    const keyStore = await ctx.reply(encoded)
-
-    await bot.api.pinChatMessage(ctx.chat.id, keyStore.message_id)
+    const config = await getConfig(bot, ctx.chat.id)
+    config.OPENAI_API_KEY = text
+    await setConfig(bot, ctx.chat.id, config)
   } else next()
 })
 
@@ -47,11 +48,15 @@ bot.on("message:text", async ctx => {
 
     const waitingMessage = ctx.reply("Generating...")
 
-    const openai = await getOpenaiInstance(ctx.chat.id)
+    const config = await getConfig(bot, ctx.chat.id)
+    if (!config.OPENAI_API_KEY) throw new Error("No OpenAI API key found.")
+
+    const openai = new OpenAI({ apiKey: config.OPENAI_API_KEY })
+
     const audio = await openai.audio.speech.create({
       input: text,
       model: "tts-1",
-      voice: "onyx",
+      voice: config.VOICE,
       response_format: "opus",
     })
 
@@ -79,7 +84,11 @@ bot.on("message:voice", async ctx => {
     const response = await fetch(file.getUrl())
     if (!response.body) throw new Error("No response body")
 
-    const openai = await getOpenaiInstance(ctx.chat.id)
+    const config = await getConfig(bot, ctx.chat.id)
+    if (!config.OPENAI_API_KEY) throw new Error("No OpenAI API key found.")
+
+    const openai = new OpenAI({ apiKey: config.OPENAI_API_KEY })
+
     const transcription = await openai.audio.transcriptions.create({
       file: response,
       model: "whisper-1",

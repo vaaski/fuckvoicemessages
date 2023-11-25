@@ -1,7 +1,9 @@
-import type { Message } from "grammy/types"
 import type { BotType } from "./bot"
 
-import { getKeyFromPinnedMessage } from "./util"
+import { chunkArray, deleteConfig } from "./util"
+import { Keyboard } from "grammy"
+import { TTS_VOICES } from "./constants"
+import { getConfig, setConfig } from "./config"
 
 export const commandHandler = (botInstance: BotType) => {
   botInstance.api.setMyCommands([
@@ -10,12 +12,16 @@ export const commandHandler = (botInstance: BotType) => {
       description: "Send the help text.",
     },
     {
+      command: "/setvoice",
+      description: "Set the voice to use for TTS.",
+    },
+    {
       command: "/getkey",
       description: "Get your saved OpenAI API key.",
     },
     {
-      command: "/deletekey",
-      description: "Delete your saved OpenAI API key.",
+      command: "/deleteconfig",
+      description: "Delete your saved config.",
     },
     {
       command: "/start",
@@ -38,29 +44,38 @@ export const commandHandler = (botInstance: BotType) => {
 
   botInstance.command("getkey", async ctx => {
     try {
-      const apiKey = await getKeyFromPinnedMessage(ctx.chat.id)
-      await ctx.reply(`Your key is: ${apiKey}`)
+      const config = await getConfig(botInstance, ctx.chat.id)
+      await ctx.reply(`Your key is: <code>${config.OPENAI_API_KEY}</code>`, {
+        parse_mode: "HTML",
+      })
     } catch {
       await ctx.reply("No key found.")
     }
   })
 
-  botInstance.command("deletekey", async ctx => {
-    let pinned_message: Message | undefined
-
+  botInstance.command("deleteconfig", async ctx => {
     try {
-      do {
-        const chat = await botInstance.api.getChat(ctx.chat.id)
-        pinned_message = chat.pinned_message
-        if (!pinned_message) break
-
-        await botInstance.api.unpinChatMessage(ctx.chat.id, pinned_message.message_id)
-        await botInstance.api.deleteMessage(ctx.chat.id, pinned_message.message_id)
-      } while (pinned_message)
+      await deleteConfig(botInstance, ctx)
     } catch (error) {
       console.error(error)
     }
 
-    await ctx.reply("Deleted saved key.", { reply_to_message_id: ctx.msg.message_id })
+    await ctx.reply("Deleted saved config.", { reply_to_message_id: ctx.msg.message_id })
+  })
+
+  botInstance.command("setvoice", async ctx => {
+    const mappedVoices = TTS_VOICES.map(name => Keyboard.text(name))
+    const rows = chunkArray(mappedVoices, 2)
+
+    const keyboard = Keyboard.from(rows).resized().oneTime()
+    await ctx.reply("Select a voice.", { reply_markup: keyboard })
+  })
+  botInstance.on(":text", async (ctx, next) => {
+    if (!TTS_VOICES.includes(ctx.msg.text)) return next()
+    await ctx.reply(`Set voice to ${ctx.msg.text}.`)
+
+    const config = await getConfig(botInstance, ctx.chat.id)
+    config.VOICE = ctx.msg.text
+    await setConfig(botInstance, ctx.chat.id, config)
   })
 }
