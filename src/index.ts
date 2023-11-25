@@ -1,6 +1,9 @@
-import { FileFlavor, hydrateFiles } from "@grammyjs/files"
-import { Bot, Context, InputFile } from "grammy"
-import { Message } from "grammy/types"
+import type { FileFlavor } from "@grammyjs/files"
+import type { Context } from "grammy"
+import type { Message } from "grammy/types"
+
+import { hydrateFiles } from "@grammyjs/files"
+import { Bot, InputFile } from "grammy"
 import OpenAI from "openai"
 
 const { TELEGRAM_BOT_TOKEN } = process.env
@@ -36,7 +39,7 @@ const getKeyFromPinnedMessage = async (chatID: number) => {
   if (!pinned_message) throw new Error("No pinned message found.")
   if (!pinned_message.text) throw new Error("Pinned message is doesn't contain text.")
 
-  const decoded = Buffer.from(pinned_message.text, "base64").toString("utf-8")
+  const decoded = Buffer.from(pinned_message.text, "base64").toString("utf8")
   const [, apiKey] = decoded.split("=")
 
   if (!apiKey) throw new Error("No key found in pinned message.")
@@ -89,7 +92,7 @@ bot.command("getkey", async ctx => {
   try {
     const apiKey = await getKeyFromPinnedMessage(ctx.chat.id)
     await ctx.reply(`Your key is: ${apiKey}`)
-  } catch (error) {
+  } catch {
     await ctx.reply("No key found.")
   }
 })
@@ -122,7 +125,7 @@ bot.on("message", async (ctx, next) => {
 })
 
 // openai api key handler
-const openaiApiKeyRegex = /^sk-[a-z0-9]{48}$/i
+const openaiApiKeyRegex = /^sk-[\da-z]{48}$/i
 bot.on("message", async (ctx, next) => {
   const text = ctx.msg.text
   if (!text) return next()
@@ -139,7 +142,7 @@ bot.on("message", async (ctx, next) => {
 
 bot.on("message:text", async ctx => {
   try {
-    const { text } = ctx.msg
+    const { text, message_id } = ctx.msg
 
     const waitingMessage = ctx.reply("Generating...")
 
@@ -153,10 +156,11 @@ bot.on("message:text", async ctx => {
 
     if (!audio.body) throw new Error("No audio body")
 
-    bot.api.deleteMessage(ctx.chat.id, (await waitingMessage).message_id)
     await ctx.replyWithVoice(new InputFile(audio.body), {
-      reply_to_message_id: ctx.msg.message_id,
+      reply_to_message_id: message_id,
     })
+    const awaitedWaitingMessage = await waitingMessage
+    bot.api.deleteMessage(ctx.chat.id, awaitedWaitingMessage.message_id)
   } catch (error) {
     handleError(ctx, error)
   }
@@ -180,7 +184,8 @@ bot.on("message:voice", async ctx => {
       model: "whisper-1",
     })
 
-    bot.api.deleteMessage(ctx.chat.id, (await waitingMessage).message_id)
+    const awaitedWaitingMessage = await waitingMessage
+    bot.api.deleteMessage(ctx.chat.id, awaitedWaitingMessage.message_id)
     await ctx.reply(transcription.text, { reply_to_message_id: ctx.msg.message_id })
   } catch (error) {
     handleError(ctx, error)
