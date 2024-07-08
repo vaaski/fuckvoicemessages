@@ -1,6 +1,6 @@
-import type { BotType, MyContext } from "./bot"
-import type { Message } from "grammy/types"
 import type { CommandContext } from "grammy"
+import type { Message } from "grammy/types"
+import type { BotType, MyContext } from "./bot"
 
 export const handleError = async (ctx: MyContext, error: unknown) => {
   console.error(error)
@@ -30,7 +30,10 @@ export const chunkArray = <T>(array: T[], chunkSize: number): T[][] => {
   return chunks
 }
 
-export const deleteConfig = async (botInstance: BotType, ctx: CommandContext<MyContext>) => {
+export const deleteConfig = async (
+  botInstance: BotType,
+  ctx: CommandContext<MyContext>
+) => {
   let pinned_message: Message | undefined
   do {
     const chat = await botInstance.api.getChat(ctx.chat.id)
