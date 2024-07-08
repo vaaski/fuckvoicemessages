@@ -1,15 +1,15 @@
 import { InputFile } from "grammy"
 
+import OpenAI from "openai"
 import { bot } from "./bot"
-import { handleError } from "./util"
 import { commandHandler } from "./commands"
 import { getConfig, setConfig } from "./config"
-import OpenAI from "openai"
+import { handleError } from "./util"
 
 // reject non-private messages and bots
-bot.on("message", (ctx, next) => {
+bot.on("message", async (ctx, next) => {
   if (ctx.chat.type !== "private" || ctx.from.is_bot) return
-  else next()
+  await next()
 })
 
 // log messages
@@ -100,6 +100,10 @@ bot.on("message:voice", async ctx => {
   } catch (error) {
     handleError(ctx, error)
   }
+})
+
+bot.on("message:audio", async ctx => {
+  ctx.reply("audio file")
 })
 
 console.log("Starting bot...")

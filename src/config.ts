@@ -18,7 +18,9 @@ export const getConfig = async (bot: BotType, chatID: number) => {
 
     if (key === "OPENAI_API_KEY") {
       return [key, Buffer.from(value, "base64").toString("utf8")]
-    } else return [key, value]
+    }
+
+    return [key, value]
   })
 
   return Object.fromEntries(configEntries)
@@ -31,7 +33,8 @@ export const setConfig = async (
 ) => {
   const rows = Object.entries(config).map(([key, value]) => {
     if (key === "OPENAI_API_KEY") return `${key}=${Buffer.from(value).toString("base64")}`
-    else return `${key}=${value}`
+
+    return `${key}=${value}`
   })
   const text = rows.join("\n")
 
