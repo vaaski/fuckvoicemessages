@@ -2,7 +2,13 @@ import type { FVMContext } from "./bot.ts"
 
 import OpenAI from "openai"
 
-export const createTranscript = async (ctx: FVMContext, file: Response) => {
+/** shoutout openai for not exporting this */
+type FileLike = Awaited<ReturnType<typeof OpenAI.toFile>>
+
+export const createTranscript = async (
+	ctx: FVMContext,
+	file: Response | FileLike,
+) => {
 	const apiKey = ctx.session.openaiApiKey
 	if (!apiKey) throw new Error("No OpenAI API key found.")
 
