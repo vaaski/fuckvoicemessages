@@ -11,6 +11,5 @@ COPY deno.json deno.lock ./
 RUN deno install
 
 COPY src/ src/
-RUN deno cache src/main.ts
 
 CMD ["deno", "task", "start"]
