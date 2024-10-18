@@ -21,6 +21,10 @@ jobs:
           password: ${{secrets.GITHUB_TOKEN}}
 
       - name: "Build Image"
-        run: |
-          docker build --tag ghcr.io/vaaski/fuckvoicemessages:latest .
-          docker push ghcr.io/vaaski/fuckvoicemessages:latest
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: "ghcr.io/vaaski/fuckvoicemessages:latest"
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
