@@ -1,0 +1,9 @@
+services:
+  fuckvoicemessages:
+    image: ghcr.io/vaaski/fuckvoicemessages:latest
+    restart: unless-stopped
+    volumes:
+      - "${PWD}/fuckvoicemessages/sessions:/app/sessions"
+    environment:
+      # get your bot token from @BotFather
+      TELEGRAM_BOT_TOKEN: ""
