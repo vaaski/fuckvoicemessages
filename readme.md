@@ -18,4 +18,20 @@ This is one of countless rewrites, this time I took it as an opportunity to use 
 - You'll receive a transcript, and if it's longer than 500 characters, a summary as well
 
 > [!NOTE]
-> If you don't like handing out your OpenAI key for free, then self-host the bot. Instructions TBD.
+> If you don't like handing out your OpenAI key for free, then self-host the bot. See below.
+
+### Self-hosting
+
+[docker compose](./compose.yml):
+
+```yaml
+services:
+  fuckvoicemessages:
+    image: ghcr.io/vaaski/fuckvoicemessages:latest
+    restart: unless-stopped
+    volumes:
+      - "${PWD}/fuckvoicemessages/sessions:/app/sessions"
+    environment:
+      # get your bot token from @BotFather
+      TELEGRAM_BOT_TOKEN: ""
+```
