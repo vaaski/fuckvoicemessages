@@ -1,8 +1,0 @@
-{
-  "apps": [
-    {
-      "name": "fuckvoicemessages",
-      "script": "bun ./src/index.ts"
-    }
-  ]
-}
