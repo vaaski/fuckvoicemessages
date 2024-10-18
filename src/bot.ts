@@ -19,3 +19,5 @@ export const createBot = () => {
 
 	return bot
 }
+
+export type BotType = ReturnType<typeof createBot>

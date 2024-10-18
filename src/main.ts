@@ -1,9 +1,11 @@
 import { createBot } from "./bot.ts"
+import { commandHandler } from "./commands.ts"
 import { openaiApiKeyRegex } from "./constant.ts"
 import { createSummary, createTranscript } from "./openai.ts"
 import { chunkText, handleError } from "./util.ts"
 
 const bot = createBot()
+commandHandler(bot)
 
 bot.on("message:text", async (ctx, next) => {
 	const match = ctx.msg.text.match(openaiApiKeyRegex)

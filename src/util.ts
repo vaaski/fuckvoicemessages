@@ -31,3 +31,6 @@ export const chunkArray = <T>(array: T[], chunkSize: number): T[][] => {
 export const chunkText = (text: string, chunkSize: number) => {
 	return chunkArray([...text], chunkSize).map((chunk) => chunk.join(""))
 }
+
+export const wait = (t: number): Promise<void> =>
+	new Promise((r) => setTimeout(r, t))
