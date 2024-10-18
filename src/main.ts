@@ -1,7 +1,7 @@
-import { openaiApiKeyRegex } from "./constant.ts"
-import { chunkArray, handleError } from "./util.ts"
 import { createBot } from "./bot.ts"
+import { openaiApiKeyRegex } from "./constant.ts"
 import { createSummary, createTranscript } from "./openai.ts"
+import { chunkText, handleError } from "./util.ts"
 
 const bot = createBot()
 
@@ -35,9 +35,7 @@ bot.on([":voice", ":audio"], async (ctx) => {
 		bot.api.deleteMessage(ctx.chat.id, waitingMessage.message_id)
 
 		if (transcription.length > 4000) {
-			const chunks = chunkArray([...transcription], 4000).map((chunk) =>
-				chunk.join("")
-			)
+			const chunks = chunkText(transcription, 4000)
 
 			for (const chunk of chunks) {
 				await ctx.reply(chunk, { reply_to_message_id: ctx.msg.message_id })
@@ -49,11 +47,11 @@ bot.on([":voice", ":audio"], async (ctx) => {
 		}
 
 		if (transcription.length > 500) {
-			const summarizingWaitingMessage = await ctx.reply("Summarizing...")
+			const summaryWaitingMessage = await ctx.reply("Summarizing...")
 			const summary = await createSummary(ctx, transcription)
 
 			await ctx.reply(summary, { reply_to_message_id: ctx.msg.message_id })
-			bot.api.deleteMessage(ctx.chat.id, summarizingWaitingMessage.message_id)
+			bot.api.deleteMessage(ctx.chat.id, summaryWaitingMessage.message_id)
 		}
 	} catch (error) {
 		handleError(ctx, error)

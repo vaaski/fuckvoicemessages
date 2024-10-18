@@ -1,6 +1,6 @@
-import { Bot, Context, session, type SessionFlavor } from "grammy"
-import { FileAdapter } from "@grammyjs/storage-file"
 import { FileFlavor, hydrateFiles } from "@grammyjs/files"
+import { FileAdapter } from "@grammyjs/storage-file"
+import { Bot, Context, session, type SessionFlavor } from "grammy"
 
 import { TELEGRAM_BOT_TOKEN } from "./environment.ts"
 

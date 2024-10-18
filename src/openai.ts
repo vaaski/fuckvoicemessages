@@ -1,5 +1,6 @@
-import OpenAI from "openai"
 import type { FVMContext } from "./bot.ts"
+
+import OpenAI from "openai"
 
 export const createTranscript = async (ctx: FVMContext, file: Response) => {
 	const apiKey = ctx.session.openaiApiKey

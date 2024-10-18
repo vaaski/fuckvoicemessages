@@ -27,3 +27,7 @@ export const chunkArray = <T>(array: T[], chunkSize: number): T[][] => {
 
 	return chunks
 }
+
+export const chunkText = (text: string, chunkSize: number) => {
+	return chunkArray([...text], chunkSize).map((chunk) => chunk.join(""))
+}
