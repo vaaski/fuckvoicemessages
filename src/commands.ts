@@ -32,6 +32,11 @@ export const commandHandler = async (bot: BotType) => {
 		await ctx.api.deleteMessage(ctx.chat.id, keyMessage.message_id)
 	})
 
+	bot.command("delkey", async (ctx) => {
+		ctx.session.openaiApiKey = ""
+		await ctx.reply("Deleted saved key.")
+	})
+
 	await bot.api.setMyCommands([
 		{
 			command: "/start",
@@ -44,6 +49,10 @@ export const commandHandler = async (bot: BotType) => {
 		{
 			command: "/getkey",
 			description: "Get your saved OpenAI API key.",
+		},
+		{
+			command: "/delkey",
+			description: "Delete your saved OpenAI API key.",
 		},
 	])
 }
