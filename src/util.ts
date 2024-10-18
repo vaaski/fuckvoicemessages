@@ -1,4 +1,4 @@
-import type { FVMContext } from "./main.ts"
+import type { FVMContext } from "./bot.ts"
 
 export const handleError = async (ctx: FVMContext, error: unknown) => {
 	console.error(error)
