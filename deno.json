@@ -1,9 +1,14 @@
 {
 	"tasks": {
-		"dev": "deno run --watch main.ts"
+		"dev": "deno run -A --watch src/main.ts"
 	},
 	"fmt": {
 		"semiColons": false,
 		"useTabs": true
+	},
+	"imports": {
+		"@grammyjs/storage-file": "npm:@grammyjs/storage-file@^2.4.2",
+		"@std/dotenv": "jsr:@std/dotenv@^0.225.2",
+		"grammy": "npm:grammy@^1.30.0"
 	}
 }
