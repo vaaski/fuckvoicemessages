@@ -7,9 +7,9 @@ export const handleError = async (ctx: FVMContext, error: unknown) => {
 		await ctx.reply(
 			[
 				`An error occurred; <code>${error.message}</code>`,
-				"Make sure you've set an <code>OPENAI_API_KEY</code>.",
 				"",
-				"To set it just send it to me and I'll store it encoded in a pinned message.",
+				"Make sure to set your <code>OPENAI_API_KEY</code>.",
+				"<b>To set it just send it to me and I'll store it.</b>",
 			].join("\n"),
 			{ parse_mode: "HTML" },
 		)
@@ -32,5 +32,6 @@ export const chunkText = (text: string, chunkSize: number) => {
 	return chunkArray([...text], chunkSize).map((chunk) => chunk.join(""))
 }
 
-export const wait = (t: number): Promise<void> =>
-	new Promise((r) => setTimeout(r, t))
+export const wait = (t: number): Promise<void> => {
+	return new Promise((r) => setTimeout(r, t))
+}

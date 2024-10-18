@@ -27,9 +27,9 @@ export const commandHandler = async (bot: BotType) => {
 			{ parse_mode: "HTML" },
 		)
 
-		await wait(60e3)
-
-		await ctx.api.deleteMessage(ctx.chat.id, keyMessage.message_id)
+		wait(60e3).then(() => {
+			ctx.api.deleteMessage(ctx.chat.id, keyMessage.message_id)
+		})
 	})
 
 	bot.command("delkey", async (ctx) => {
