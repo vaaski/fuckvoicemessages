@@ -1,6 +1,6 @@
 import { createBot } from "./bot.ts"
 import { commandHandler } from "./commands.ts"
-import { openaiApiKeyRegex } from "./constant.ts"
+import { helpText, openaiApiKeyRegex } from "./constant.ts"
 import { getMP3Audio } from "./ffmpeg.ts"
 import { createSummary, createTranscript } from "./openai.ts"
 import { chunkText, handleError } from "./util.ts"
@@ -79,7 +79,7 @@ bot.on([":voice", ":audio", ":video_note", ":video"], async (ctx) => {
 })
 
 bot.on("message", async (ctx) => {
-	await ctx.reply("Hello World!")
+	await ctx.reply(helpText, { parse_mode: "HTML" })
 })
 
 console.log("starting bot")

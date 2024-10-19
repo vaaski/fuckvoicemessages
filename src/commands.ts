@@ -1,17 +1,10 @@
 import type { BotType } from "./bot.ts"
+import { helpText } from "./constant.ts"
 import { wait } from "./util.ts"
 
 export const commandHandler = async (bot: BotType) => {
 	bot.command(["start", "help"], (ctx) => {
-		ctx.reply(
-			[
-				"Send a voice message and I'll transcribe it.",
-				"",
-				"Make sure to set your <code>OPENAI_API_KEY</code>.",
-				"<b>To set it just send it to me and I'll store it.</b>",
-			].join("\n"),
-			{ parse_mode: "HTML" },
-		)
+		ctx.reply(helpText, { parse_mode: "HTML" })
 	})
 
 	bot.command("getkey", async (ctx) => {
